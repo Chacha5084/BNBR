@@ -334,7 +334,7 @@ void affichage_attente_joueur(game_t game){
 
 void attente_joueur(game_t game){
     // Création de la socket d'ecoute : 
-    socket_t server_socket = creerSocketEcoute("10.42.0.1", 5000);
+    socket_t server_socket = creerSocketEcoute("127.0.0.1", 5000);
 
     // Mémoire partagée
     int shmid;
@@ -435,15 +435,12 @@ void lancement_partie(game_t *game){
         envoyer_infos_partie(game, &game->players[i].socket);
     }
 
-
     // Reception des bateaux des joueur
-    for (int i = 0; i <= game->nbJoueur-1; i++){
-        move(5,0);
-        clrtoeol();
-        printw("Réception des bateaux en cours ... %d sur %d\n", i, game->nbJoueur);
-        refresh();
-        recevoir_bateaux(game, &game->players[i]);
-    }
+    move(5,0);
+    clrtoeol();
+    printw("Réception des bateaux en cours ...\n");
+    refresh();
+    recevoir_bateaux(game, game->players);
 
     // On lance la partie
     move(7,0);
@@ -605,7 +602,6 @@ void verifier_fin_partie(game_t *game){
             
             // Si encore en vie 
             if (flag == 1 ){
-
                 req_t requete = format_req(7, "continue", " ");
                 envoyer(&game->players[i].socket, &requete, serial_req);
 
@@ -676,28 +672,46 @@ void tirer_bateau(int x, int y, board_t *board, int nbBateau){
 
 void recevoir_bateaux(game_t *game, client_t *client){
 
-    req_t requete = format_req(3, "bateaux", " ");
-    envoyer(&client->socket, &requete, serial_req);
-
-    req_t reponse;
-    recevoir(&client->socket, &reponse, unserial_req);
-
-    requete = format_req(0, "ok", " ");
-    envoyer(&client->socket, &requete, serial_req);
-
-    if (reponse.id == 3){
-        // On récupère les bateaux
-
-        int x, y;
-        char direction;
-
-        // Utilisation de sscanf pour extraire les paramètres
-        // x;y;direction
-        sscanf(reponse.infos, "%d;%d;%c", &x, &y, &direction);
-
-        // On place le bateau
-        placer_bateau(&game->plateau, client->id, game->tailleBateau, x, y, direction);
+    for (int i = 0; i <= game->nbJoueur-1; i++){
+        req_t req = format_req(3, "bateaux", " ");
+        envoyer(&game->players[i].socket, &req ,serial_req);
     }
+
+    int nbBateauxRecu = 0,j=0;
+    bool flag=NULL;
+
+    do
+    {
+        req_t reponse;
+
+        flag = recevoir_non_block(&game->players[j].socket, &reponse, unserial_req);
+
+        if(flag != NULL)
+        {
+            req_t requete = format_req(0, "ok", " ");
+            envoyer(&game->players[j].socket, &requete, serial_req);
+
+            if (reponse.id == 3){
+                // On récupère les bateaux
+
+                int x, y;
+                char direction;
+
+                // Utilisation de sscanf pour extraire les paramètres
+                // x;y;direction
+                sscanf(reponse.infos, "%d;%d;%c", &x, &y, &direction);
+
+                // On place le bateau
+                placer_bateau(&game->plateau,  game->players[j].id, game->tailleBateau, x, y, direction);
+                flag = NULL;
+                nbBateauxRecu++;
+            }
+            if(j == game->nbJoueur+1)
+                j = 0;
+            else
+                j++;
+        }
+    }while(nbBateauxRecu != game->nbJoueur);
 }
 
 void placer_bateau(board_t *board, int id, int taille, int x, int y, char direction){

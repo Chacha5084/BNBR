@@ -67,8 +67,11 @@ void envoyer(socket_t *sockEch, generic quoi,pFct serial, ...);
  */
 int recevoir(socket_t *sockEch, generic quoi, pFct deSerial);
 
+int recevoir_non_block(socket_t *sockEch, void *quoi, void (*deSerial)(const buffer_t, void *));
+
 void envoyerMessDGRAM(socket_t * sockEch, buffer_t buff, char * adrIp, int port);
 
 void envoyerMessSTREAM(socket_t * sockEch,buffer_t buff);
+
 
 #endif 

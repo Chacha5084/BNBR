@@ -65,10 +65,87 @@ int recevoir(socket_t *sockEch, generic quoi, pFct deSerial){
         read(sockEch->fd, buff, sizeof(buff));
     }
 
-    if(deSerial !=NULL ) 
+    if(deSerial != NULL )
         deSerial(buff,quoi);
     else 
         strcpy(quoi,buff);
 
     return 1;
+}
+
+/**
+ * @brief Reçoit des données d'un socket non bloquant.
+ *
+ * Cette fonction essaie de recevoir des données à partir d'un socket, sans se bloquer.
+ * Elle retourne NULL s'il n'y a pas de données disponibles à lire.
+ *
+ * @param sockEch Le socket à partir duquel recevoir les données.
+ * @param quoi Un pointeur vers la structure où stocker les données reçues.
+ * @param deSerial Un pointeur vers une fonction de désérialisation (peut être NULL).
+ *
+ * @return 1 en cas de succès, NULL si aucune donnée n'est disponible, -1 en cas d'erreur.
+ *
+ * @details
+ * - Si le socket est de type SOCK_DGRAM (UDP), `recvfrom` est utilisé pour recevoir les données.
+ * - Si le socket est de type SOCK_STREAM (TCP), `read` est utilisé pour recevoir les données.
+ * - La fonction de désérialisation est appelée si elle est fournie, sinon les données sont copiées directement.
+ * - La fonction utilise `select` pour vérifier si des données sont disponibles avant d'appeler `recvfrom` ou `read`.
+ */
+int recevoir_non_block(socket_t *sockEch, void *quoi, void (*deSerial)(const buffer_t, void *)) {
+    buffer_t buff;
+    socklen_t cltLen;
+    struct sockaddr_in clt;
+    cltLen = sizeof(clt);
+    fd_set readfds;
+    struct timeval timeout;
+
+    // Clear the set
+    FD_ZERO(&readfds);
+
+    // Add sockEch->fd to the set
+    FD_SET(sockEch->fd, &readfds);
+
+    // Set timeout to 0 seconds and 0 microseconds
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+
+    // Check if there is data to read
+    int activity = select(sockEch->fd + 1, &readfds, NULL, NULL, &timeout);
+
+    if (activity == -1) {
+        perror("select error");
+        return -1;
+    }
+
+    if (activity == 0) {
+        // No data to read
+        return NULL;
+    }
+
+    if (FD_ISSET(sockEch->fd, &readfds)) {
+        if (sockEch->mode == SOCK_DGRAM) {
+            ssize_t received = recvfrom(sockEch->fd, buff, sizeof(buff), 0, (struct sockaddr *)&clt, &cltLen);
+            if (received < 0) {
+                perror("recvfrom error");
+                return -1;
+            }
+            sockEch->addrDst = clt;
+        } else if (sockEch->mode == SOCK_STREAM) {
+            ssize_t received = read(sockEch->fd, buff, sizeof(buff));
+            if (received < 0) {
+                perror("read error");
+                return -1;
+            }
+        }
+
+        if (deSerial != NULL) {
+            deSerial(buff, quoi);
+        } else {
+            strcpy(quoi, buff);
+        }
+
+        return 1;
+    }
+
+    return NULL;
 }

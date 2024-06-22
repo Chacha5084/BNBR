@@ -6,7 +6,7 @@ PC: libMcsPC serveurPC clientPC
 
 # Compilation des fichiers source
 serveurPC: source/serveur.c
-	gcc -o serveur.e $^ -lpthread -lmcs -lncurses -Llib -LoutncursesPC/lib -IoutncursesPC/include/ncurses
+	gcc -ggdb -o serveur.e $^ -lpthread -lmcs -lncurses -Llib -LoutncursesPC/lib -IoutncursesPC/include/ncurses
 
 # Compilation des fichiers source
 clientPC: source/client.c

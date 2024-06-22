@@ -12,7 +12,7 @@
 typedef struct socket socket_t; 
 
 typedef struct{
-    int id;
+    int id; // type d'info envoyée
     char nom[100];
     char infos[1000];
 } req_t;
@@ -105,7 +105,7 @@ void envoyer_plateau(game_t *game);
 void tirer_bateau(int x, int y, board_t *board, int nbBateau);
 void placer_bateau(board_t *board, int id, int taille, int x, int y, char direction);
 
-void recevoir_bateaux(game_t *game, client_t *client);
+void recevoir_bateaux(game_t *game, client_t client[]);
 
 
 req_t format_req(int id, char *nom, char *infos);
