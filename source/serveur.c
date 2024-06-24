@@ -678,7 +678,7 @@ void recevoir_bateaux(game_t *game, client_t *client){
     }
 
     int nbBateauxRecu = 0,j=0;
-    bool flag=NULL;
+    bool flag=-1;
 
     do
     {
@@ -686,7 +686,7 @@ void recevoir_bateaux(game_t *game, client_t *client){
 
         flag = recevoir_non_block(&game->players[j].socket, &reponse, unserial_req);
 
-        if(flag != NULL)
+        if(flag != -1)
         {
             req_t requete = format_req(0, "ok", " ");
             envoyer(&game->players[j].socket, &requete, serial_req);
@@ -703,7 +703,7 @@ void recevoir_bateaux(game_t *game, client_t *client){
 
                 // On place le bateau
                 placer_bateau(&game->plateau,  game->players[j].id, game->tailleBateau, x, y, direction);
-                flag = NULL;
+                flag = -1;
                 nbBateauxRecu++;
             }
             if(j == game->nbJoueur+1)
@@ -718,10 +718,10 @@ void placer_bateau(board_t *board, int id, int taille, int x, int y, char direct
     if (direction == 'h'){
 
         for (int i = 0; i < taille; i++){
-            board->bateaux[board->nbBateau].taille = taille;
-            board->bateaux[board->nbBateau].cell[i].x = x;
-            board->bateaux[board->nbBateau].cell[i].y = y - i;
-            board->bateaux[board->nbBateau].cell[i].status = BOAT;
+            board->bateaux[id].taille = taille;
+            board->bateaux[id].cell[i].x = x;
+            board->bateaux[id].cell[i].y = y - i;
+            board->bateaux[id].cell[i].status = BOAT;
             board->cell[y - i][x].status = BOAT;
         }
             board->nbBateau++;
@@ -729,10 +729,10 @@ void placer_bateau(board_t *board, int id, int taille, int x, int y, char direct
     } else if (direction == 'b'){
 
         for (int i = 0; i < taille; i++){
-            board->bateaux[board->nbBateau].taille = taille;
-            board->bateaux[board->nbBateau].cell[i].x = x;
-            board->bateaux[board->nbBateau].cell[i].y = y + i;
-            board->bateaux[board->nbBateau].cell[i].status = BOAT;
+            board->bateaux[id].taille = taille;
+            board->bateaux[id].cell[i].x = x;
+            board->bateaux[id].cell[i].y = y + i;
+            board->bateaux[id].cell[i].status = BOAT;
             board->cell[y + i][x].status = BOAT;
         }
             board->nbBateau++;
@@ -740,10 +740,10 @@ void placer_bateau(board_t *board, int id, int taille, int x, int y, char direct
     } else if (direction == 'g'){
 
         for (int i = 0; i < taille; i++){
-            board->bateaux[board->nbBateau].taille = taille;
-            board->bateaux[board->nbBateau].cell[i].x = x - i;
-            board->bateaux[board->nbBateau].cell[i].y = y;
-            board->bateaux[board->nbBateau].cell[i].status = BOAT;
+            board->bateaux[id].taille = taille;
+            board->bateaux[id].cell[i].x = x - i;
+            board->bateaux[id].cell[i].y = y;
+            board->bateaux[id].cell[i].status = BOAT;
             board->cell[y][x - i].status = BOAT;
         }
             board->nbBateau++;
@@ -751,10 +751,10 @@ void placer_bateau(board_t *board, int id, int taille, int x, int y, char direct
     } else if (direction == 'd'){
 
         for (int i = 0; i < taille; i++){
-            board->bateaux[board->nbBateau].taille = taille;
-            board->bateaux[board->nbBateau].cell[i].x = x + i;
-            board->bateaux[board->nbBateau].cell[i].y = y;
-            board->bateaux[board->nbBateau].cell[i].status = BOAT;
+            board->bateaux[id].taille = taille;
+            board->bateaux[id].cell[i].x = x + i;
+            board->bateaux[id].cell[i].y = y;
+            board->bateaux[id].cell[i].status = BOAT;
             board->cell[y][x + i].status = BOAT;
             
         }

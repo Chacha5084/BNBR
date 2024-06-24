@@ -84,7 +84,7 @@ int envoyer_bateau(socket_t *client_socket);
 void attente_partie(socket_t *client_socket);
 void jouer_partie(socket_t *client_socket);
 void jouer_coup(socket_t *client_socket);
-int recevoir_plateau(socket_t *client_socket);
+void recevoir_plateau(socket_t *client_socket);
 void afficher_plateau(int cursor_x, int cursor_y);
 void afficher_plateau_placer_bateau(int cursor_x, int cursor_y, char *direction);
 void decode_plateau(char *infos);

@@ -32,7 +32,7 @@ Q ?= @
 endif
 
 STATIC=libwiringPi.a
-DYNAMIC=libwiringPi.so.$(VERSION)
+DYNAMIC=$(STATIC) #libwiringPi.so.$(VERSION)
 
 #DEBUG	= -g -O0
 DEBUG	= -O2

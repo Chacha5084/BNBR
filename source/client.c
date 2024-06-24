@@ -29,7 +29,6 @@ int hexValues[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f};
 /**********************************************************/
 
 int main(int argc, char *argv[]){
-    buffer_t buffer;
     char adresse[16];
     int port;
 
@@ -367,7 +366,7 @@ void afficher_plateau(int cursor_x, int cursor_y) {
     refresh();
 }
 
-int recevoir_plateau(socket_t *client_socket){
+void recevoir_plateau(socket_t *client_socket){
         // Reception du plateau
         req_t reception;
         recevoir(client_socket, &reception, unserial_req);
@@ -463,6 +462,8 @@ void afficher_plateau_placer_bateau(int cursor_x, int cursor_y, char *direction)
         for (int j = 0; j < game.taillePlateau; j++){
             switch (plateau.cell[i][j].status)
             {
+                case MISSED_SHOT:
+                case HIT_SHOT:
                 case EMPTY:
                         printw("[ ] ");
                     break;

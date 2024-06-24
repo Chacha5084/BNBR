@@ -1,5 +1,14 @@
 #include "data.h"
 
+void envoyerMessDGRAM(socket_t * sockEch, buffer_t buff, char * adrIp, int port){
+    adr2struct(&sockEch->addrDst, adrIp, port);
+    CHECK(sendto(sockEch->fd, buff, strlen(buff)+1, 0,(struct sockaddr *)&sockEch->addrDst, sizeof sockEch->addrDst) , "Can't send");
+}
+
+void envoyerMessSTREAM(socket_t * sockEch,buffer_t buff){
+    CHECK(write(sockEch->fd, buff, strlen(buff)+1), "Can't send");
+}
+
 /**
  *	\fn			void envoyer(socket_t *sockEch, generic quoi, pFct serial, ...)
  *	\brief		Envoi d'une requête/réponse sur une socket
@@ -28,15 +37,6 @@ void envoyer(socket_t *sockEch, generic quoi,pFct serial, ...){
     else if(sockEch->mode == SOCK_STREAM){
         envoyerMessSTREAM(sockEch,buff);
     }
-}
-
-void envoyerMessDGRAM(socket_t * sockEch, buffer_t buff, char * adrIp, int port){
-    adr2struct(&sockEch->addrDst, adrIp, port);
-    CHECK(sendto(sockEch->fd, buff, strlen(buff)+1, 0,(struct sockaddr *)&sockEch->addrDst, sizeof sockEch->addrDst) , "Can't send");
-}
-
-void envoyerMessSTREAM(socket_t * sockEch,buffer_t buff){
-    CHECK(write(sockEch->fd, buff, strlen(buff)+1), "Can't send");
 }
 
 /**
@@ -91,7 +91,7 @@ int recevoir(socket_t *sockEch, generic quoi, pFct deSerial){
  * - La fonction de désérialisation est appelée si elle est fournie, sinon les données sont copiées directement.
  * - La fonction utilise `select` pour vérifier si des données sont disponibles avant d'appeler `recvfrom` ou `read`.
  */
-int recevoir_non_block(socket_t *sockEch, void *quoi, void (*deSerial)(const buffer_t, void *)) {
+int recevoir_non_block(socket_t *sockEch, void *quoi, void (*deSerial)(generic buffer_t, void *)) {
     buffer_t buff;
     socklen_t cltLen;
     struct sockaddr_in clt;
@@ -119,7 +119,7 @@ int recevoir_non_block(socket_t *sockEch, void *quoi, void (*deSerial)(const buf
 
     if (activity == 0) {
         // No data to read
-        return NULL;
+        return -1;
     }
 
     if (FD_ISSET(sockEch->fd, &readfds)) {
@@ -147,5 +147,5 @@ int recevoir_non_block(socket_t *sockEch, void *quoi, void (*deSerial)(const buf
         return 1;
     }
 
-    return NULL;
+    return -1;
 }

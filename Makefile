@@ -10,11 +10,11 @@ serveurPC: source/serveur.c
 
 # Compilation des fichiers source
 clientPC: source/client.c
-	gcc -o client.e $^ -lpthread -lmcs -lncurses -Llib -LoutncursesPC/lib -IoutncursesPC/include/ncurses
+	gcc -o client.e $^ -Wall -Wextra -pedantic -static -lpthread -lmcs -lncurses -Llib -LoutncursesPC/lib -IoutncursesPC/include/ncurses
 
 # Compilation des fichiers source de LIBRAIRIE
 libDataPC: lib/data.c lib/data.h
-	gcc -c -o lib/data.o $<
+	gcc -Wall -Wextra -pedantic -c -o lib/data.o $<
 
 libSessionPC: lib/session.c lib/session.h
 	gcc -c -o lib/session.o $<
@@ -25,12 +25,12 @@ libMcsPC: libSessionPC libDataPC
 
 # Compilation des fichiers source
 serveurRPI: source/serveur.c
-	$(PATH_CC)/arm-linux-gnueabihf-gcc -o serveurRPI.e $^ -std=c99 -D_SVID_SOURCE -lpthread -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -Iinclude/ncurses
+	$(PATH_CC)/arm-linux-gnueabihf-gcc -o serveurRPI.e $^  -std=c99 -D_SVID_SOURCE -lpthread -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -Iinclude/ncurses
 
 # Compilation des fichiers source
 clientRPI: source/client.c
 	export RPI="";
-	$(PATH_CC)/arm-linux-gnueabihf-gcc -o clientRPI.e $^ -std=c99 -D_SVID_SOURCE -lpthread -lwiringpi -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -IwiringPi/wiringPi/ -Iinclude/ncurses
+	$(PATH_CC)/arm-linux-gnueabihf-gcc -o clientRPI.e $^ -static -std=c99 -D_SVID_SOURCE -lpthread -lwiringpi -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -IwiringPi/wiringPi/ -Iinclude/ncurses
 
 libDataRPI: lib/data.c lib/data.h
 	$(PATH_CC)/arm-linux-gnueabihf-gcc -c -o lib/data.o $<
