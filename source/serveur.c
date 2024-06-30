@@ -280,7 +280,7 @@ void *attente_joueur_thread(void *arg){
                 // Touche q
                 case 'q':
                     break;
-                
+
                 // Touche entrée
                 case 10:
                     // Lancement de la partie
@@ -327,15 +327,25 @@ void affichage_attente_joueur(game_t game){
     printw(" %d / %d \n\n", game.nbJoueur, game.maxJoueur);
 
     printw("Enter pour lancer la partie\n");
-    printw("Appuyez sur la touche 'q' pour revenir au menu principal\n");
+    //printw("Appuyez sur la touche 'q' pour revenir au menu principal\n");
 
     refresh();
 }
 
 void attente_joueur(game_t game){
-    // Création de la socket d'ecoute : 
-    socket_t server_socket = creerSocketEcoute("127.0.0.1", 5000);
-
+    // Création de la socket d'ecoute :
+#ifdef RPI
+    socket_t server_socket = creerSocketEcoute("10.42.0.1", 5000);
+    printw("ip rpi");
+    refresh();
+    getch();
+#endif
+#ifndef RPI
+    socket_t server_socket = creerSocketEcoute("10.42.0.1", 5000);
+    printw("ip rpi");
+    refresh();
+    getch();
+#endif
     // Mémoire partagée
     int shmid;
     key_t key = 1234;
@@ -678,7 +688,7 @@ void recevoir_bateaux(game_t *game, client_t *client){
     }
 
     int nbBateauxRecu = 0,j=0;
-    bool flag=-1;
+    int flag=-1;
 
     do
     {

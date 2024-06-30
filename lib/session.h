@@ -11,6 +11,7 @@
 *****************************************************************************************
  *	\noop		I N C L U D E S   S P E C I F I Q U E S
  */
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>

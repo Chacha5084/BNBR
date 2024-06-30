@@ -10,7 +10,7 @@
 
 
 /**********************************************************/
-// Variable globale 
+// Variable globale
 /**********************************************************/
 char pseudo[50];
 game_t game;
@@ -37,39 +37,76 @@ int main(int argc, char *argv[]){
         adresse[16 - 1] = '\0';
         port = atoi(argv[2]);
     } else {
-        strncpy(adresse, "127.0.0.1", 16 - 1);
+        strncpy(adresse, "10.", 16 - 1);
         adresse[16 - 1] = '\0';
         port = 8080;
     }
 
+    init_ncurses();
 
-    printf("Bonjour, en attente de connexion au serveur\n\n");
+    move (0,0);
+    attron(COLOR_PAIR(3));
+    attron(A_BOLD);
+    printw("BnBr - Jeu de Bataille navale, en bataille royale !");
+    attroff(COLOR_PAIR(3));
+    attroff(A_BOLD);
 
     socket_t client_socket = connecterClt2Srv(adresse, port );
 
+    if (client_socket.fd == -1){
+        endwin();
+        printf("Connexion impossible ! \naucun serveur disponible sur l'addresse : %s - port %d \n\n", adresse, port);
+        return -1;
+    }
+
     /* Identification */
-        req_t reponse;
-        recevoir(&client_socket, &reponse, unserial_req);
+    req_t reponse;
+    recevoir(&client_socket, &reponse, unserial_req);
 
         if (reponse.id == 0){
 
             /* Récupération du pseudo */
             strcpy(pseudo,"");
 
+            move (2,0);
+            clrtoeol();
+            attron(COLOR_PAIR(2));
+            attron(A_BOLD);
+            printw("Connexion au serveur en cours");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BOLD);
+
             while (strlen(pseudo) == 0){
-                printf("Saisisez votre pseudo : ");
-                scanf("%s", pseudo);
+
+                curs_set(1); // Mettre le curseur visible
+
+                move (4,0);
+                clrtoeol();
+                attron(COLOR_PAIR(2));
+                printw("Saisisez votre pseudo : \n");
+                attroff(COLOR_PAIR(2));
+                printw("\t");
+                refresh();
+
+                echo(); // Permet d'afficher les caractères tapés par l'utilisateur
+                getnstr(pseudo, sizeof(pseudo) - 1); // Lire l'entrée utilisateur
+                noecho(); // Désactiver l'affichage des caractères tapés
 
                 if (strlen(pseudo) == 0){
-                    printf("Votre pseudo est vide");
+                    move (6,0);
+                    clrtoeol();
+                    attron(COLOR_PAIR(1));
+                    printw("Attention, il faut entrer un pseudo");
+                    attroff(COLOR_PAIR(1));
+                    refresh();
                 }
+                refresh(); // Add this line to update the screen
             }
 
-            // Envoie de la requete d'identification     
+            // Envoie de la requete d'identification
             req_t requete = format_req(1, "identification", pseudo);
             envoyer(&client_socket, &requete, serial_req);
-            
-                            
+
             reponse.id = -2;
             strcpy(reponse.nom, "");
             strcpy(reponse.infos, "");
@@ -78,13 +115,25 @@ int main(int argc, char *argv[]){
 
             if (reponse.id == 0){
 
-                printf("Connexion établie \n\n");
-                // Attente d'une partie 
+                erase();
+                move (0,0);
+                attron(COLOR_PAIR(3));
+                attron(A_BOLD);
+                printw("BnBr - Jeu de Bataille navale, en bataille royale !");
+                attroff(COLOR_PAIR(3));
+                attroff(A_BOLD);
+
+                move (2,0);
+                attron(COLOR_PAIR(2));
+                printw("Connexion établie\nEn attente du lancement de la partie...");
+                attroff(COLOR_PAIR(2));
+                refresh();
+                // Attente d'une partie
                 attente_partie(&client_socket);
 
             } else {
-
-                printf("Connexion imposible \n\n");
+                endwin();
+                printf("Connexion imposible\nProbleme de pseudo... \n\n");
                 close(client_socket.fd);
                 return 0;
             }
@@ -100,7 +149,7 @@ int envoyer_bateau(socket_t *client_socket){
     init_plateau();
 
     req_t reponse;
-    // Envoie des bateaux   
+    // Envoie des bateaux
     recevoir(client_socket, &reponse, unserial_req);
 
     if (reponse.id == 3){
@@ -120,18 +169,25 @@ void attente_partie(socket_t *client_socket){
         recevoir(client_socket, &reception, unserial_req);
 
         if(reception.id == 4){
-            
+
             //acqittement
             req_t requete = format_req(0, "ok", "recep OK\n");
             envoyer(client_socket, &requete, serial_req);
 
             sscanf(reception.infos,"%d;%d;%d;%d",&game.nbJoueur,&game.taillePlateau,&game.tailleBateau,&game.timeout);
 
+            move (5,0);
+            attron(COLOR_PAIR(3));
             printf("Informations de partie : \n");
-            printf("Nombre de Joueurs : %d\n", game.nbJoueur);
-            printf("Timeout : %d\n", game.timeout);
-            printf("Taille du plateau : %d\n", game.taillePlateau);
-            printf("Taille des bateaux : %d\n", game.tailleBateau);
+            attroff(COLOR_PAIR(3));
+
+            attron(COLOR_PAIR(4));
+            printw("Nombre de Joueurs : %d\n", game.nbJoueur);
+            printw("Timeout : %d\n", game.timeout);
+            printw("Taille du plateau : %d\n", game.taillePlateau);
+            printw("Taille des bateaux : %d\n", game.tailleBateau);
+            attroff(COLOR_PAIR(4));
+            refresh();
 
             // Envoie de son bateau au serveur
             int retour = envoyer_bateau(client_socket);
@@ -139,9 +195,11 @@ void attente_partie(socket_t *client_socket){
                 // Lancement de la partie.
                 jouer_partie(client_socket);
             } else {
+                endwin();
                 printf("Erreur de réception des informations de partie...\n");
             }
         } else {
+            endwin();
             printf("Erreur de réception des informations de partie...\n");
         }
 }
@@ -158,7 +216,7 @@ void jouer_partie(socket_t *client_socket){
         } else {
             clear();
             printw("Partie en cours\n");
-            
+
             afficher_plateau(MAX_BOARD_SIZE+1,MAX_BOARD_SIZE+1);
 
             printw("\n\nNavire coulé... Vous ferez mieux la prochaine fois !\n");
@@ -169,7 +227,7 @@ void jouer_partie(socket_t *client_socket){
             req_t reception;
             recevoir(client_socket,&reception,serial_req);
 
-            req_t requete = format_req(0, "recept", " "); 
+            req_t requete = format_req(0, "recept", " ");
             envoyer(client_socket,&requete,serial_req);
 
             requete = format_req(6, "mort", " ");
@@ -197,7 +255,7 @@ void jouer_partie(socket_t *client_socket){
 }
 
 void recevoir_etat(socket_t * client_socket){
-    
+
     req_t reception;
     recevoir(client_socket, &reception, unserial_req);
     if (reception.id == 10){
@@ -224,7 +282,7 @@ void recevoir_etat(socket_t * client_socket){
         printw("Vous etes toujours vivant, continuer la bataille ! \n");
 
     } else if (reception.id == 8){
-        
+
         req_t requete = format_req(0, "ok", "recep OK\n");
         envoyer(client_socket, &requete, serial_req);
 
@@ -245,15 +303,14 @@ void jouer_coup(socket_t *client_socket){
         //acqittement
         requete = format_req(0, "ok", "recep OK\n");
         envoyer(client_socket, &requete, serial_req);
-#ifdef RPI
+        /*
         // TODO affichage 7 segment pour le temps restant
         int fd = wiringPiI2CSetup(I2C_ADDRESS); // Initialisation de l'afficheur 7 segments
         // Configuration de l'afficheur 7 segments
         wiringPiI2CWriteReg8(fd, 0x21, 0x01);
         wiringPiI2CWriteReg8(fd, 0x81, 0x00);
         wiringPiI2CWriteReg8(fd, 0xef, 0x00);
-#endif
-
+*/
         int cursor_x = 0;
         int cursor_y = 0;
 
@@ -270,16 +327,11 @@ void jouer_coup(socket_t *client_socket){
             clear(); // Effacer l'écran
 
             // Si le temps est écoulé, sortir de la boucle
-            current_time = time(NULL);          
+            current_time = time(NULL);
             int time_elapsed = (int)difftime(current_time, start_time);
             int time_remaining = game.timeout - time_elapsed;
 
-            printw("Jeu en cours\n");
-            printw("Temps restant : %d\n", time_remaining);
-
-            #ifdef RPI
-                affichage7segments(fd,time_remaining,0);
-            #endif
+                //affichage7segments(fd,time_remaining,0);
 
             if (time_remaining <= 0) {
                 // Temps écoulé, sortir de la boucle
@@ -288,7 +340,7 @@ void jouer_coup(socket_t *client_socket){
 
             // Déplacer le curseur en fonction de la touche pressée, mais uniquement si la case est disponible
             switch (ch) {
-                // Case fleche 
+                // Case fleche
                     case KEY_UP:
                             if (cursor_y > 0){
                                 cursor_y--;
@@ -296,7 +348,7 @@ void jouer_coup(socket_t *client_socket){
                         break;
                     case KEY_DOWN:
                             if (cursor_y < game.taillePlateau - 1){
-                                cursor_y++;  
+                                cursor_y++;
                             }
                         break;
                     case KEY_LEFT:
@@ -311,10 +363,30 @@ void jouer_coup(socket_t *client_socket){
                         break;
             }
 
+                erase();
+                move (0,0);
+                attron(COLOR_PAIR(3));
+                attron(A_BOLD);
+                printw("BnBr - Jeu de Bataille navale, en bataille royale !");
+                attroff(COLOR_PAIR(3));
+                attroff(A_BOLD);
+
+                move (2,0);
+                attron(COLOR_PAIR(2));
+                attron(A_BOLD);
+                printw("Jeu en cours\n");
+                printw("Temps restant : %d\n", time_remaining);
+                attroff(COLOR_PAIR(2));
+                attroff(A_BOLD);
+
+                move (6,0);
+
                 afficher_plateau(cursor_x, cursor_y);
 
+                attron(COLOR_PAIR(4));
                 printw("\n\nDeplacer le curseur avec les flèches directionnelles\n");
                 printw("Attendez la fin du timer\n");
+                attroff(COLOR_PAIR(4));
 
                 refresh();
 
@@ -328,8 +400,9 @@ void jouer_coup(socket_t *client_socket){
 
         req_t reponse;
         recevoir(client_socket, &reponse, unserial_req);
-        
+
     } else {
+        endwin();
         printf("Erreur de réception des informations de parties...\n");
     }
 }
@@ -344,22 +417,29 @@ void afficher_plateau(int cursor_x, int cursor_y) {
             }
             switch (game.plateau.cell[i][j].status) {
                 case MISSED_SHOT:
+                    attron(COLOR_PAIR(4));
                     printw("[o]");
+                    attroff(COLOR_PAIR(4));
                     break;
                 case HIT_SHOT:
+                    attron(COLOR_PAIR(6));
                     printw("[x]");
+                    attroff(COLOR_PAIR(6));
                     break;
                 case EMPTY:
+                    attron(COLOR_PAIR(5));
                     printw("[ ]");
+                    attroff(COLOR_PAIR(5));
                     break;
                 case BOAT:
+                    attron(COLOR_PAIR(2));
                     printw("[B]");
+                    attroff(COLOR_PAIR(2));
                     break;
             }
             if (cursor_x == j && cursor_y == i) {
                 attroff(A_REVERSE);
             }
-            printw(" ");
         }
         printw("\n");
     }
@@ -372,11 +452,11 @@ void recevoir_plateau(socket_t *client_socket){
         recevoir(client_socket, &reception, unserial_req);
         refresh();
 
-        if(reception.id == 2){  
+        if(reception.id == 2){
             //acqittement
             req_t requete = format_req(0, "ok", "recep OK\n");
-            envoyer(client_socket, &requete, serial_req);    
-            
+            envoyer(client_socket, &requete, serial_req);
+
             // Affichage du plateau
             decode_plateau(reception.infos);
 
@@ -456,7 +536,18 @@ void afficher_plateau_placer_bateau(int cursor_x, int cursor_y, char *direction)
 
     clear(); // Effacer l'écran
 
-    printw("Placer votre bateau\n\n");
+    erase();
+    move (0,0);
+    attron(COLOR_PAIR(3));
+    attron(A_BOLD);
+    printw("BnBr - Jeu de Bataille navale, en bataille royale !");
+    attroff(COLOR_PAIR(3));
+    attroff(A_BOLD);
+
+    move (2,0);
+    attron(COLOR_PAIR(2));
+    printw("Placer votre bateau : \n\n");
+    attroff(COLOR_PAIR(2));
 
     for (int i = 0; i < game.taillePlateau; i++){
         for (int j = 0; j < game.taillePlateau; j++){
@@ -465,11 +556,13 @@ void afficher_plateau_placer_bateau(int cursor_x, int cursor_y, char *direction)
                 case MISSED_SHOT:
                 case HIT_SHOT:
                 case EMPTY:
-                        printw("[ ] ");
+                        attron(COLOR_PAIR(5));
+                        printw("[ ]");
+                        attroff(COLOR_PAIR(5));
                     break;
                 case BOAT:
                         attron(A_REVERSE);
-                        printw("[B] ");
+                        printw("[B]");
                         attroff(A_REVERSE);
                     break;
             }
@@ -477,14 +570,17 @@ void afficher_plateau_placer_bateau(int cursor_x, int cursor_y, char *direction)
         printw("\n");
     }
 
+    attron(COLOR_PAIR(4));
     printw("\n\nChanger la direction avec les flèches directionnelles\n");
     printw("Valider avec la touche entrée\n");
     printw("Annuler avec la touche q\n");
+    attroff(COLOR_PAIR(4));
+
     refresh();
 }
 
 void decode_plateau(char *infos){
-    
+
     board_t plateau;
     // Décodage du plateau
     for (int i = 0; i < game.taillePlateau; i++){
@@ -527,16 +623,18 @@ void init_ncurses(){
     initscr();
     keypad(stdscr, TRUE); // Activer la prise en charge des touches spéciales
     start_color(); // Activer les couleurs
-    curs_set(0); // Masquer le curseur
-    noecho(); // Désactiver l'affichage des caractères saisis
+    //curs_set(0); // Masquer le curseur
+    //noecho(); // Désactiver l'affichage des caractères saisis
     cbreak(); // Désactiver la mise en mémoire tampon de ligne
 
-
     // Définition des couleurs
-    init_pair(1, COLOR_BLACK, COLOR_RED); // Texte rouge sur fond noir
+    init_pair(1, COLOR_WHITE, COLOR_RED); // Texte rouge sur fond noir
     init_pair(2, COLOR_WHITE, COLOR_GREEN); // Texte rouge sur fond noir
-    init_pair(3, COLOR_YELLOW, COLOR_BLACK); // Texte rouge sur fond noir
-    init_pair(4, COLOR_CYAN, COLOR_BLACK); // Texte rouge sur fond noir
+    init_pair(3, COLOR_WHITE, COLOR_MAGENTA); // Texte rouge sur fond noir
+    init_pair(4, COLOR_WHITE, COLOR_CYAN); // Texte rouge sur fond noir
+    init_pair(5, COLOR_WHITE, COLOR_BLUE); // Texte rouge sur fond noir
+    init_pair(6, COLOR_RED, COLOR_BLUE); // Texte rouge sur fond noir
+
 }
 
 void choix_bateau(socket_t *client_socket){
@@ -546,13 +644,27 @@ void choix_bateau(socket_t *client_socket){
 
     // DISPLAY NCURSES  **************************************************************************************
     init_ncurses(); // Initialiser ncurses
-    clear(); 
-    printw("Placer votre bateau\n\n");
+
+    erase();
+    move (0,0);
+    attron(COLOR_PAIR(3));
+    attron(A_BOLD);
+    printw("BnBr - Jeu de Bataille navale, en bataille royale !");
+    attroff(COLOR_PAIR(3));
+    attroff(A_BOLD);
+
+    move (2,0);
+    attron(COLOR_PAIR(2));
+    printw("Placer votre bateau : \n\n");
+    attroff(COLOR_PAIR(2));
 
     afficher_plateau(cursor_x, cursor_y);
 
+    attron(COLOR_PAIR(4));
     printw("\n\nDeplacer le curseur avec les flèches directionnelles\n");
     printw("Placer le bateau avec la touche entrée\n");
+    attroff(COLOR_PAIR(4));
+
 
     refresh();
 
@@ -562,7 +674,7 @@ void choix_bateau(socket_t *client_socket){
         ch = getch(); // Lire une touche du clavier
         // Déplacer le curseur en fonction de la touche pressée, mais uniquement si la case est disponible
         switch (ch) {
-            // Case fleche 
+            // Case fleche
                 case KEY_UP:
                         if (cursor_y > 0){
                             cursor_y--;
@@ -572,7 +684,7 @@ void choix_bateau(socket_t *client_socket){
                 case KEY_DOWN:
                         if (cursor_y < game.taillePlateau - 1){
                             cursor_y++;
-                            //display_matrix(cursor_x, cursor_y, matrix);   
+                            //display_matrix(cursor_x, cursor_y, matrix);
                         }
                     break;
                 case KEY_LEFT:
@@ -599,13 +711,28 @@ void choix_bateau(socket_t *client_socket){
                 }
                 break;
         }
-        clear(); 
+        clear();
         printw("Placer votre bateau\n\n");
+
+        erase();
+        move (0,0);
+        attron(COLOR_PAIR(3));
+        attron(A_BOLD);
+        printw("BnBr - Jeu de Bataille navale, en bataille royale !");
+        attroff(COLOR_PAIR(3));
+        attroff(A_BOLD);
+
+        move (2,0);
+        attron(COLOR_PAIR(2));
+        printw("Placer votre bateau : \n\n");
+        attroff(COLOR_PAIR(2));
 
         afficher_plateau(cursor_x, cursor_y);
 
+        attron(COLOR_PAIR(4));
         printw("\n\nDeplacer le curseur avec les flèches directionnelles\n");
         printw("Placer le bateau avec la touche entrée\n");
+        attroff(COLOR_PAIR(4));
 
         refresh();
 
@@ -620,13 +747,13 @@ int menu_placer_bateau(int cursor_x, int cursor_y, socket_t *client_socket){
     afficher_plateau_placer_bateau(cursor_x, cursor_y, &direction);
     req_t requete, reponse;
     char infos[10];
-    
+
     int ch;
     do {
         ch = getch(); // Lire une touche du clavier
         // Déplacer le curseur en fonction de la touche pressée, mais uniquement si la case est disponible
         switch (ch) {
-            // Case fleche 
+            // Case fleche
                 case KEY_UP:
                     direction = 'h';
                     break;
@@ -650,7 +777,7 @@ int menu_placer_bateau(int cursor_x, int cursor_y, socket_t *client_socket){
                             game.bateau.cell[i].x = cursor_x;
                             game.bateau.cell[i].y = cursor_y - i;
                         }
-                    break;    
+                    break;
 
                 case 'b':
                         for (int i = 0; i < game.tailleBateau; i++){
@@ -672,7 +799,7 @@ int menu_placer_bateau(int cursor_x, int cursor_y, socket_t *client_socket){
                             game.bateau.cell[i].y = cursor_y;
                         }
                     break;
-                
+
                 default:
                     break;
                 }
@@ -682,17 +809,17 @@ int menu_placer_bateau(int cursor_x, int cursor_y, socket_t *client_socket){
                 envoyer(client_socket, &requete, serial_req);
 
                 recevoir(client_socket, &reponse, unserial_req);
-                
+
                 if (reponse.id == 0){
-                    printf("Bateau placé avec succès\n");
                     return 0;
                 } else {
+                    endwin();
                     printf("Erreur de réception des informations de parties...\n");
                 }
                 break;
 
-            // Case touche q    
-            case 'q':                    
+            // Case touche q
+            case 'q':
                 break;
         }
 
@@ -730,7 +857,7 @@ void unserial_req(generic buff, generic quoi){
     sscanf(str_req, "%d;%99[^;];%99s", &req->id, req->nom, req->infos);
 }
 
-#ifdef RPI
+/*
     void affichage7segments(int fd,int sec, int min){
 
         int unite_min= min % 10 ;
@@ -744,4 +871,4 @@ void unserial_req(generic buff, generic quoi){
         wiringPiI2CWriteReg8(fd, 0x06, hexValues[dizaine_sec]); // On affiche le chiffre 3
         wiringPiI2CWriteReg8(fd, 0x08, hexValues[unite_sec]); // On affiche le chiffre 4 (tout à droite)
     }
-#endif
+*/

@@ -25,12 +25,13 @@ libMcsPC: libSessionPC libDataPC
 
 # Compilation des fichiers source
 serveurRPI: source/serveur.c
-	$(PATH_CC)/arm-linux-gnueabihf-gcc -o serveurRPI.e $^  -std=c99 -D_SVID_SOURCE -lpthread -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -Iinclude/ncurses
+	$(PATH_CC)/arm-linux-gnueabihf-gcc -o serveurRPI.e $^  -std=c99 -D_SVID_SOURCE -lpthread -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -Iinclude/ncurses -IoutncursesRPI/share/terminfo
 
 # Compilation des fichiers source
 clientRPI: source/client.c
+	#gcc -o my_program main.c -lwiringPi -Wl,-Bstatic -lc -lm -Wl,-Bdynamic
 	export RPI="";
-	$(PATH_CC)/arm-linux-gnueabihf-gcc -o clientRPI.e $^ -static -std=c99 -D_SVID_SOURCE -lpthread -lwiringpi -lmcs -lncurses -Llib -LoutncursesRPI/lib/ -IwiringPi/wiringPi/ -Iinclude/ncurses
+	$(PATH_CC)/arm-linux-gnueabihf-gcc -o clientRPI.e $^ -std=c99 -D_SVID_SOURCE -Wl,-Bstatic -lpthread -lmcs -lncurses -Wl,-Bdynamic -lwiringpi -Llib -LoutncursesRPI/lib/ -IwiringPi/wiringPi/ -Iinclude/ncurses
 
 libDataRPI: lib/data.c lib/data.h
 	$(PATH_CC)/arm-linux-gnueabihf-gcc -c -o lib/data.o $<
